@@ -1,0 +1,685 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Quiz — Jornada Saúde 2026</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    background: #0f172a;
+    color: #e2e8f0;
+    min-height: 100vh;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 1.5rem 1rem;
+  }
+  .card {
+    background: #1e293b;
+    border-radius: 12px;
+    padding: 2rem;
+    max-width: 720px;
+    width: 100%;
+  }
+  h1 { font-size: 1.5rem; color: #f1f5f9; margin-bottom: 0.25rem; }
+  .subtitle { color: #94a3b8; font-size: 0.9rem; margin-bottom: 2rem; }
+
+  /* MODULE SELECT */
+  .module-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem;
+    margin-bottom: 1.5rem;
+  }
+  @media (max-width: 500px) { .module-grid { grid-template-columns: 1fr; } }
+  .module-btn {
+    background: #273449;
+    border: 2px solid #334155;
+    border-radius: 8px;
+    padding: 1rem;
+    cursor: pointer;
+    color: #e2e8f0;
+    font-size: 0.9rem;
+    text-align: left;
+    transition: border-color 0.15s, background 0.15s;
+  }
+  .module-btn:hover { border-color: #3b82f6; background: #1d3557; }
+  .module-btn.selected { border-color: #3b82f6; background: #1d3557; }
+  .module-btn .module-title { font-weight: 600; font-size: 0.95rem; }
+  .module-btn .module-count { color: #64748b; font-size: 0.8rem; margin-top: 0.2rem; }
+  .start-btn {
+    width: 100%;
+    background: #3b82f6;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 0.85rem;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .start-btn:hover { background: #2563eb; }
+  .start-btn:disabled { background: #334155; color: #64748b; cursor: not-allowed; }
+
+  /* QUIZ HEADER */
+  .quiz-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1.25rem;
+    gap: 0.75rem;
+  }
+  .back-btn {
+    background: transparent;
+    color: #64748b;
+    border: 2px solid #334155;
+    border-radius: 8px;
+    padding: 0.4rem 0.85rem;
+    font-size: 0.85rem;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: color 0.15s, border-color 0.15s;
+  }
+  .back-btn:hover { color: #94a3b8; border-color: #475569; }
+  .module-label-text {
+    color: #64748b;
+    font-size: 0.82rem;
+    text-align: right;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* QUESTION NAVIGATOR */
+  .q-nav {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.3rem;
+    margin-bottom: 1.25rem;
+    padding: 0.75rem;
+    background: #0f172a;
+    border-radius: 8px;
+  }
+  .q-nav-btn {
+    width: 2rem;
+    height: 2rem;
+    border-radius: 6px;
+    border: 2px solid #334155;
+    background: #273449;
+    color: #94a3b8;
+    font-size: 0.72rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.12s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .q-nav-btn:hover { border-color: #3b82f6; color: #e2e8f0; }
+  .q-nav-btn.current { border-color: #3b82f6; background: #1d3557; color: #93c5fd; }
+  .q-nav-btn.ans-correct { border-color: #22c55e; background: #14532d; color: #bbf7d0; }
+  .q-nav-btn.ans-wrong { border-color: #ef4444; background: #450a0a; color: #fecaca; }
+
+  /* QUIZ */
+  .progress-bar-wrap { background: #334155; border-radius: 99px; height: 6px; margin-bottom: 1.5rem; }
+  .progress-bar { background: #3b82f6; border-radius: 99px; height: 6px; transition: width 0.3s; }
+  .progress-text { color: #64748b; font-size: 0.8rem; margin-bottom: 0.5rem; }
+  .question-text { font-size: 1.05rem; color: #f1f5f9; margin-bottom: 1.5rem; line-height: 1.6; }
+  .options { display: flex; flex-direction: column; gap: 0.6rem; margin-bottom: 1.5rem; }
+  .option {
+    background: #273449;
+    border: 2px solid #334155;
+    border-radius: 8px;
+    padding: 0.85rem 1rem;
+    cursor: pointer;
+    color: #e2e8f0;
+    font-size: 0.9rem;
+    line-height: 1.5;
+    text-align: left;
+    transition: border-color 0.15s, background 0.15s;
+  }
+  .option:hover:not(:disabled) { border-color: #3b82f6; background: #1d3557; }
+  .option.selected { border-color: #3b82f6; background: #1d3557; }
+  .option.correct { border-color: #22c55e; background: #14532d; color: #bbf7d0; }
+  .option.wrong { border-color: #ef4444; background: #450a0a; color: #fecaca; }
+  .option:disabled { cursor: default; }
+
+  .confirm-btn {
+    width: 100%;
+    background: #3b82f6;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 0.85rem;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .confirm-btn:hover { background: #2563eb; }
+  .confirm-btn:disabled { background: #334155; color: #64748b; cursor: not-allowed; }
+
+  .feedback {
+    background: #0f172a;
+    border-radius: 8px;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    font-size: 0.88rem;
+    line-height: 1.6;
+    color: #cbd5e1;
+  }
+  .feedback strong { color: #f1f5f9; }
+  .feedback.correct-fb { border-left: 4px solid #22c55e; }
+  .feedback.wrong-fb { border-left: 4px solid #ef4444; }
+
+  .next-btn {
+    width: 100%;
+    background: #475569;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 0.85rem;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s;
+    margin-top: 0.5rem;
+  }
+  .next-btn:hover { background: #64748b; }
+
+  .finish-btn {
+    width: 100%;
+    background: #22c55e;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 0.85rem;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s;
+    margin-top: 0.5rem;
+  }
+  .finish-btn:hover { background: #16a34a; }
+
+  /* RESULT SUMMARY */
+  .score-big { font-size: 3rem; font-weight: 700; color: #3b82f6; margin: 1rem 0 0.25rem; }
+  .score-label { color: #94a3b8; margin-bottom: 2rem; }
+  .restart-btn {
+    width: 100%;
+    background: #3b82f6;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 0.85rem;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    margin-bottom: 0.75rem;
+    transition: background 0.15s;
+  }
+  .restart-btn:hover { background: #2563eb; }
+  .home-btn {
+    width: 100%;
+    background: transparent;
+    color: #64748b;
+    border: 2px solid #334155;
+    border-radius: 8px;
+    padding: 0.85rem;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: color 0.15s, border-color 0.15s;
+  }
+  .home-btn:hover { color: #94a3b8; border-color: #475569; }
+
+  /* RESULT QUESTIONS REVIEW */
+  .result-review {
+    margin-top: 2rem;
+    border-top: 1px solid #334155;
+    padding-top: 1.5rem;
+  }
+  .result-review h2 { font-size: 1.05rem; color: #f1f5f9; margin-bottom: 1rem; }
+  .result-q {
+    background: #0f172a;
+    border-radius: 8px;
+    padding: 1rem;
+    margin-bottom: 0.85rem;
+    border-left: 4px solid #334155;
+  }
+  .result-q.rq-correct { border-left-color: #22c55e; }
+  .result-q.rq-wrong   { border-left-color: #ef4444; }
+  .result-q.rq-skipped { border-left-color: #475569; }
+  .result-q-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.6rem;
+    gap: 0.5rem;
+  }
+  .result-q-num { color: #64748b; font-size: 0.78rem; font-weight: 600; white-space: nowrap; }
+  .result-badge {
+    font-size: 0.72rem;
+    font-weight: 600;
+    padding: 0.18rem 0.5rem;
+    border-radius: 4px;
+    white-space: nowrap;
+  }
+  .badge-correct { background: #14532d; color: #bbf7d0; }
+  .badge-wrong   { background: #450a0a; color: #fecaca; }
+  .badge-skipped { background: #1e293b; color: #64748b; border: 1px solid #334155; }
+  .result-q-text { font-size: 0.92rem; color: #f1f5f9; margin-bottom: 0.7rem; line-height: 1.55; }
+  .result-opt {
+    font-size: 0.84rem;
+    padding: 0.45rem 0.75rem;
+    border-radius: 6px;
+    margin-bottom: 0.3rem;
+    color: #64748b;
+    background: #1e293b;
+    border: 1px solid #2d3f55;
+    line-height: 1.45;
+  }
+  .result-opt.ro-correct      { border-color: #22c55e; background: #14532d; color: #bbf7d0; }
+  .result-opt.ro-user-wrong   { border-color: #ef4444; background: #450a0a; color: #fecaca; }
+  .result-opt.ro-user-correct { border-color: #22c55e; background: #14532d; color: #bbf7d0; }
+  .result-explanation {
+    font-size: 0.82rem;
+    color: #94a3b8;
+    margin-top: 0.6rem;
+    line-height: 1.55;
+    border-top: 1px solid #334155;
+    padding-top: 0.5rem;
+  }
+
+  .hidden { display: none; }
+  .loading { color: #64748b; text-align: center; padding: 2rem 0; }
+  .error { color: #f87171; text-align: center; padding: 2rem 0; }
+</style>
+</head>
+<body>
+<div class="card">
+
+  <!-- HOME -->
+  <div id="screen-home">
+    <h1>Quiz Jornada Saúde 2026</h1>
+    <p class="subtitle">Selecione a matéria para começar</p>
+    <div class="module-grid" id="module-grid"></div>
+    <button class="start-btn" id="start-btn" disabled onclick="startQuiz()">Iniciar</button>
+  </div>
+
+  <!-- QUIZ -->
+  <div id="screen-quiz" class="hidden">
+    <div class="quiz-header">
+      <button class="back-btn" onclick="goHome()">← Tela inicial</button>
+      <span class="module-label-text" id="module-label"></span>
+    </div>
+    <div class="q-nav" id="q-nav"></div>
+    <p class="progress-text" id="progress-text"></p>
+    <div class="progress-bar-wrap"><div class="progress-bar" id="progress-bar"></div></div>
+    <p class="question-text" id="question-text"></p>
+    <div class="options" id="options"></div>
+    <button class="confirm-btn" id="confirm-btn" disabled onclick="confirmAnswer()">Confirmar</button>
+    <div id="feedback" class="feedback hidden"></div>
+    <button class="next-btn hidden" id="next-btn" onclick="nextQuestion()">Próxima →</button>
+    <button class="finish-btn hidden" id="finish-btn" onclick="showResult()">Finalizar Quiz</button>
+  </div>
+
+  <!-- RESULT -->
+  <div id="screen-result" class="hidden">
+    <h1>Resultado</h1>
+    <div class="score-big" id="score-big"></div>
+    <p class="score-label" id="score-label"></p>
+    <button class="restart-btn" onclick="restartQuiz()">Refazer este módulo</button>
+    <button class="home-btn" onclick="goHome()">← Escolher outra matéria</button>
+    <div class="result-review" id="result-review"></div>
+  </div>
+
+</div>
+
+<script>
+const MODULES = [
+  { id: "apresentacao",    label: "Jornada & SUS & APS",           file: "questions_apresentacao.json" },
+  { id: "saude_mental",    label: "Saúde Mental & TMCs",            file: "questions_saude_mental.json" },
+  { id: "insuf_cognitiva", label: "Demência, Delirium & Geriatria", file: "questions_insuf_cognitiva.json" },
+  { id: "adolescente",     label: "Saúde do Adolescente",           file: "questions_adolescente.json" },
+  { id: "ist_hiv",         label: "ISTs & HIV",                     file: "questions_ist_hiv.json" },
+];
+
+let selectedModule  = null;
+let questions       = [];
+let currentIndex    = 0;
+let score           = 0;
+let selectedOption  = null;
+let answered        = false;
+let shuffleMap      = [];
+
+// Per-question persistent state
+// userAnswers[i] = null (untouched) | { selectedOption, isCorrect }
+let userAnswers        = [];
+// questionShuffleMaps[i] = number[] — locked shuffle order for each question
+let questionShuffleMaps = [];
+
+// ---------- HOME ----------
+function buildModuleGrid() {
+  const grid = document.getElementById("module-grid");
+  MODULES.forEach((m, i) => {
+    const btn = document.createElement("button");
+    btn.className = "module-btn";
+    btn.innerHTML = `<div class="module-title">${m.label}</div><div class="module-count">30 questões</div>`;
+    btn.onclick = () => selectModule(i, btn);
+    grid.appendChild(btn);
+  });
+}
+
+function selectModule(i, btn) {
+  document.querySelectorAll(".module-btn").forEach(b => b.classList.remove("selected"));
+  btn.classList.add("selected");
+  selectedModule = MODULES[i];
+  document.getElementById("start-btn").disabled = false;
+}
+
+async function startQuiz() {
+  const btn = document.getElementById("start-btn");
+  btn.disabled = true;
+  btn.textContent = "Carregando...";
+  try {
+    const res = await fetch(selectedModule.file);
+    if (!res.ok) throw new Error("Erro ao carregar arquivo");
+    questions = await res.json();
+  } catch(e) {
+    btn.textContent = "Erro ao carregar. Tente novamente.";
+    btn.disabled = false;
+    return;
+  }
+  questions = fisherYates([...questions]);
+  currentIndex = 0;
+  score = 0;
+  userAnswers        = new Array(questions.length).fill(null);
+  questionShuffleMaps = questions.map(() => fisherYates([0, 1, 2, 3, 4]));
+
+  document.getElementById("module-label").textContent = selectedModule.label;
+  buildNavigator();
+  show("screen-quiz");
+  renderQuestion();
+}
+
+// ---------- NAVIGATOR ----------
+function buildNavigator() {
+  const nav = document.getElementById("q-nav");
+  nav.innerHTML = "";
+  questions.forEach((_, i) => {
+    const btn = document.createElement("button");
+    btn.className = "q-nav-btn";
+    btn.textContent = i + 1;
+    btn.id = `qnav-${i}`;
+    btn.onclick = () => goToQuestion(i);
+    nav.appendChild(btn);
+  });
+  updateNavigator();
+}
+
+function updateNavigator() {
+  questions.forEach((_, i) => {
+    const btn = document.getElementById(`qnav-${i}`);
+    if (!btn) return;
+    btn.className = "q-nav-btn";
+    if (i === currentIndex) {
+      btn.classList.add("current");
+    } else if (userAnswers[i] !== null) {
+      btn.classList.add(userAnswers[i].isCorrect ? "ans-correct" : "ans-wrong");
+    }
+  });
+}
+
+function goToQuestion(index) {
+  currentIndex = index;
+  renderQuestion();
+}
+
+// ---------- QUIZ ----------
+function renderQuestion() {
+  answered      = false;
+  selectedOption = null;
+
+  const q     = questions[currentIndex];
+  const total = questions.length;
+
+  document.getElementById("progress-text").textContent = `Questão ${currentIndex + 1} de ${total}`;
+  document.getElementById("progress-bar").style.width  = `${(currentIndex / total) * 100}%`;
+  document.getElementById("question-text").textContent = q.question;
+
+  // Use the persistent shuffle map for this question slot
+  shuffleMap = questionShuffleMaps[currentIndex];
+
+  const container = document.getElementById("options");
+  container.innerHTML = "";
+  shuffleMap.forEach((origIdx, displayPos) => {
+    const btn = document.createElement("button");
+    btn.className = "option";
+    btn.textContent = q.options[origIdx];
+    btn.onclick = () => selectOption(displayPos, btn);
+    container.appendChild(btn);
+  });
+
+  const confirmBtn = document.getElementById("confirm-btn");
+  const nextBtn    = document.getElementById("next-btn");
+  const finishBtn  = document.getElementById("finish-btn");
+  const feedbackEl = document.getElementById("feedback");
+
+  const isLastQuestion = currentIndex === total - 1;
+  const savedAnswer    = userAnswers[currentIndex];
+
+  if (savedAnswer !== null) {
+    // Question already answered — restore state, no re-answering
+    answered       = true;
+    selectedOption = savedAnswer.selectedOption;
+
+    const correctDisplayPos = shuffleMap.indexOf(0);
+    const optionBtns = container.querySelectorAll(".option");
+    optionBtns.forEach((ob, pos) => {
+      ob.disabled = true;
+      if (pos === correctDisplayPos)                           ob.classList.add("correct");
+      else if (pos === selectedOption && !savedAnswer.isCorrect) ob.classList.add("wrong");
+    });
+
+    feedbackEl.className = "feedback " + (savedAnswer.isCorrect ? "correct-fb" : "wrong-fb");
+    feedbackEl.innerHTML = savedAnswer.isCorrect
+      ? `<strong>✓ Correto!</strong> ${q.explanation}`
+      : `<strong>✗ Incorreto.</strong> A resposta certa é: <strong>${q.options[0]}</strong><br><br>${q.explanation}`;
+    feedbackEl.classList.remove("hidden");
+
+    confirmBtn.classList.add("hidden");
+    if (isLastQuestion) {
+      nextBtn.classList.add("hidden");
+      finishBtn.classList.remove("hidden");
+    } else {
+      nextBtn.textContent = "Próxima →";
+      nextBtn.classList.remove("hidden");
+      finishBtn.classList.add("hidden");
+    }
+  } else {
+    // Fresh unanswered question
+    confirmBtn.disabled = true;
+    confirmBtn.classList.remove("hidden");
+    confirmBtn.textContent = "Confirmar";
+    feedbackEl.classList.add("hidden");
+    nextBtn.classList.add("hidden");
+
+    // Show finish button on last question even before answering
+    if (isLastQuestion) {
+      finishBtn.classList.remove("hidden");
+    } else {
+      finishBtn.classList.add("hidden");
+    }
+  }
+
+  updateNavigator();
+}
+
+function selectOption(displayPos, btn) {
+  if (answered) return;
+  document.querySelectorAll(".option").forEach(b => b.classList.remove("selected"));
+  btn.classList.add("selected");
+  selectedOption = displayPos;
+  document.getElementById("confirm-btn").disabled = false;
+}
+
+function confirmAnswer() {
+  if (selectedOption === null || answered) return;
+  answered = true;
+
+  const q     = questions[currentIndex];
+  const total = questions.length;
+  const correctDisplayPos = shuffleMap.indexOf(0);
+  const isCorrect = selectedOption === correctDisplayPos;
+
+  // Persist answer
+  userAnswers[currentIndex] = { selectedOption, isCorrect };
+  score = userAnswers.filter(a => a !== null && a.isCorrect).length;
+
+  const optionBtns = document.querySelectorAll(".option");
+  optionBtns.forEach((btn, pos) => {
+    btn.disabled = true;
+    if (pos === correctDisplayPos)                  btn.classList.add("correct");
+    else if (pos === selectedOption && !isCorrect)  btn.classList.add("wrong");
+  });
+
+  const fb = document.getElementById("feedback");
+  fb.className = "feedback " + (isCorrect ? "correct-fb" : "wrong-fb");
+  fb.innerHTML = isCorrect
+    ? `<strong>✓ Correto!</strong> ${q.explanation}`
+    : `<strong>✗ Incorreto.</strong> A resposta certa é: <strong>${q.options[0]}</strong><br><br>${q.explanation}`;
+  fb.classList.remove("hidden");
+
+  document.getElementById("confirm-btn").classList.add("hidden");
+
+  const nextBtn   = document.getElementById("next-btn");
+  const finishBtn = document.getElementById("finish-btn");
+  const isLastQuestion = currentIndex === total - 1;
+
+  if (isLastQuestion) {
+    nextBtn.classList.add("hidden");
+    finishBtn.classList.remove("hidden");
+  } else {
+    nextBtn.textContent = "Próxima →";
+    nextBtn.classList.remove("hidden");
+    finishBtn.classList.add("hidden");
+  }
+
+  updateNavigator();
+}
+
+function nextQuestion() {
+  if (currentIndex + 1 < questions.length) {
+    currentIndex++;
+    renderQuestion();
+  }
+}
+
+// ---------- RESULT ----------
+function showResult() {
+  show("screen-result");
+  const total        = questions.length;
+  score              = userAnswers.filter(a => a !== null && a.isCorrect).length;
+  const answeredCount = userAnswers.filter(a => a !== null).length;
+  const skippedCount  = total - answeredCount;
+
+  document.getElementById("score-big").textContent = `${score}/${total}`;
+
+  const pct = Math.round((score / total) * 100);
+  let label = pct >= 80 ? "Excelente! 🏆" : pct >= 60 ? "Bom resultado!" : "Continue estudando.";
+  let sub   = `${pct}% de acertos`;
+  if (skippedCount > 0) sub += ` · ${skippedCount} não respondida${skippedCount > 1 ? "s" : ""}`;
+  sub += ` — ${label}`;
+  document.getElementById("score-label").textContent = sub;
+
+  buildResultReview();
+}
+
+function buildResultReview() {
+  const container = document.getElementById("result-review");
+  container.innerHTML = "<h2>Revisão das questões</h2>";
+
+  questions.forEach((q, i) => {
+    const ua       = userAnswers[i];
+    const qMap     = questionShuffleMaps[i];
+    const correctPos = qMap.indexOf(0);
+
+    let qClass, badge, badgeClass;
+    if (ua === null) {
+      qClass = "result-q rq-skipped"; badge = "Não respondida"; badgeClass = "badge-skipped";
+    } else if (ua.isCorrect) {
+      qClass = "result-q rq-correct"; badge = "✓ Correto";      badgeClass = "badge-correct";
+    } else {
+      qClass = "result-q rq-wrong";   badge = "✗ Incorreto";    badgeClass = "badge-wrong";
+    }
+
+    const div = document.createElement("div");
+    div.className = qClass;
+
+    let optsHTML = "";
+    qMap.forEach((origIdx, displayPos) => {
+      const isCorrectPos = displayPos === correctPos;
+      const isUserPick   = ua !== null && displayPos === ua.selectedOption;
+
+      let cls = "result-opt";
+      if (isCorrectPos && isUserPick)   cls += " ro-user-correct";
+      else if (isCorrectPos)            cls += " ro-correct";
+      else if (isUserPick)              cls += " ro-user-wrong";
+
+      optsHTML += `<div class="${cls}">${q.options[origIdx]}</div>`;
+    });
+
+    div.innerHTML = `
+      <div class="result-q-header">
+        <span class="result-q-num">Questão ${i + 1}</span>
+        <span class="result-badge ${badgeClass}">${badge}</span>
+      </div>
+      <p class="result-q-text">${q.question}</p>
+      ${optsHTML}
+      ${ua !== null ? `<div class="result-explanation">${q.explanation}</div>` : ""}
+    `;
+    container.appendChild(div);
+  });
+}
+
+function restartQuiz() {
+  questions           = fisherYates([...questions]);
+  currentIndex        = 0;
+  score               = 0;
+  userAnswers         = new Array(questions.length).fill(null);
+  questionShuffleMaps = questions.map(() => fisherYates([0, 1, 2, 3, 4]));
+  buildNavigator();
+  show("screen-quiz");
+  renderQuestion();
+}
+
+function goHome() {
+  show("screen-home");
+  document.getElementById("start-btn").disabled = false;
+  document.getElementById("start-btn").textContent = "Iniciar";
+}
+
+// ---------- UTILS ----------
+function show(id) {
+  ["screen-home", "screen-quiz", "screen-result"].forEach(s => {
+    document.getElementById(s).classList.toggle("hidden", s !== id);
+  });
+}
+
+function fisherYates(arr) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+// Init
+buildModuleGrid();
+</script>
+</body>
+</html>
